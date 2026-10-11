@@ -14,7 +14,7 @@ export const MenuBar: React.FC = () => {
   const isEditable = useLexicalEditable();
 
   return (
-    <div className="menu-bar-strip border-border/60 bg-surface text-foreground flex w-full items-center gap-0.5 overflow-x-auto border-b px-3 py-0.5 pl-5 select-none">
+    <div className="menu-bar-strip border-border/60 bg-surface text-foreground flex w-full items-center gap-0.5 overflow-x-auto border-b px-3 py-0.5 pl-5 select-none print:hidden">
       <FileMenu disabled={!isEditable} />
       <EditMenu disabled={!isEditable} />
       <ViewMenu disabled={!isEditable} />

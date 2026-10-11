@@ -35,11 +35,15 @@ import {
 
 import Loader from "@/components/shared/Loader";
 import FloatingToolbarPlugin from "./plugins/FloatingToolbarPlugin";
-import { useThreads } from "@liveblocks/react/suspense";
+import { useMutation, useSelf, useStorage, useThreads } from "@liveblocks/react/suspense";
 import Comments from "@/components/liveblocks/Comments";
 import { useEffect, useMemo, useState } from "react";
 import { ToolbarContext } from "@/context/ToolbarContext";
-import { DocumentLayoutProvider } from "@/context/DocumentLayoutContext";
+import {
+  DocumentLayoutProvider,
+  MarginPreset,
+  PageSizePreset,
+} from "@/context/DocumentLayoutContext";
 import PlaygroundNodes from "./nodes/playgroundNodes";
 import { CAN_USE_DOM } from "@lexical/utils";
 import LinkPlugin from "./plugins/linkPlugin";
@@ -50,6 +54,7 @@ import TableEscapePlugin from "./plugins/TableEscapePlugin";
 import EditorSanitizerPlugin from "./plugins/EditorSanitizerPlugin";
 import { HorizontalRulePlugin } from "@lexical/react/LexicalHorizontalRulePlugin";
 import { PageBreakPlugin } from "./plugins/PageBreakPlugin";
+import PaginationPlugin from "./plugins/PaginationPlugin";
 import CalloutPlugin from "./plugins/CalloutPlugin";
 import MediaEmbedPlugin from "./plugins/MediaEmbedPlugin";
 import ImagesPlugin from "./plugins/ImagesPlugin";
@@ -76,6 +81,17 @@ export function Editor({ roomId, currentUserType }: Editorprops) {
 
   const ready = useIsEditorReady();
   const { threads } = useThreads();
+
+  // Page setup is shared document state; viewers (read-only) get no change handlers.
+  const pageSize = useStorage((root) => root.pageSize);
+  const pageMargins = useStorage((root) => root.pageMargins);
+  const canWrite = useSelf((me) => me.canWrite);
+  const setPageSize = useMutation(({ storage }, size: PageSizePreset) => {
+    storage.set("pageSize", size);
+  }, []);
+  const setPageMargins = useMutation(({ storage }, margins: MarginPreset) => {
+    storage.set("pageMargins", margins);
+  }, []);
   const [isLinkEditMode, setIsLinkEditMode] = useState<boolean>(false);
 
   const [floatingAnchorElem, setFloatingAnchorElem] = useState<HTMLDivElement | null>(null);
@@ -106,15 +122,31 @@ export function Editor({ roomId, currentUserType }: Editorprops) {
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <DocumentLayoutProvider>
+      <DocumentLayoutProvider
+        pageSize={pageSize}
+        margins={pageMargins}
+        onPageSizeChange={canWrite ? setPageSize : undefined}
+        onMarginsChange={canWrite ? setPageMargins : undefined}
+      >
         <ToolbarContext>
-          <div className="bg-surface-canvas text-foreground flex size-full flex-1 flex-col overflow-hidden text-left leading-5">
+          <div className="bg-surface-canvas text-foreground flex size-full flex-1 flex-col overflow-hidden text-left leading-5 print:block print:overflow-visible print:bg-transparent">
             <MenuBar />
-            <div className="toolbar-wrapper border-border z-20 flex min-h-11 min-w-full items-center justify-between gap-4 border-b">
+            <div className="toolbar-wrapper border-border z-20 flex min-h-11 min-w-full items-center justify-between gap-4 border-b print:hidden">
               <ToolbarPlugin setIsLinkEditMode={setIsLinkEditMode} />
             </div>
 
-            <EditorShell>
+            <EditorShell
+              aside={
+                <LiveblocksPlugin>
+                  <FloatingComposer className="border-border bg-surface w-87.5 overflow-hidden rounded-xl border shadow-2xl" />
+                  <FloatingThreads
+                    threads={threads}
+                    className="border-border bg-surface rounded-xl border shadow-2xl"
+                  />
+                  <Comments />
+                </LiveblocksPlugin>
+              }
+            >
               <div className="relative min-h-full">
                 {!ready && (
                   <div className="bg-surface/80 absolute inset-0 z-30 flex items-center justify-center backdrop-blur-xs">
@@ -145,6 +177,7 @@ export function Editor({ roomId, currentUserType }: Editorprops) {
                 <TableCellResizerPlugin />
                 <HorizontalRulePlugin />
                 <PageBreakPlugin />
+                <PaginationPlugin />
                 <CalloutPlugin />
                 <MediaEmbedPlugin />
                 <ImagesPlugin />
@@ -161,16 +194,6 @@ export function Editor({ roomId, currentUserType }: Editorprops) {
                 )}
                 <LinkPlugin hasLinkAttributes={hasLinkAttributes} />
               </div>
-
-              {/* liveblocks plugin */}
-              <LiveblocksPlugin>
-                <FloatingComposer className="border-border bg-surface w-87.5 overflow-hidden rounded-xl border shadow-2xl" />
-                <FloatingThreads
-                  threads={threads}
-                  className="border-border bg-surface rounded-xl border shadow-2xl"
-                />
-                <Comments />
-              </LiveblocksPlugin>
             </EditorShell>
           </div>
         </ToolbarContext>

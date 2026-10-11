@@ -6,7 +6,7 @@ const Header = ({ children, className }: HeaderProps) => {
   return (
     <header
       className={cn(
-        "border-border bg-surface sticky top-0 z-40 flex min-h-16 w-full items-center justify-between gap-4 border-b px-4 py-2.5 transition-colors sm:px-6",
+        "border-border bg-surface sticky top-0 z-40 flex min-h-16 w-full items-center justify-between gap-4 border-b px-4 py-2.5 transition-colors sm:px-6 print:hidden",
         className,
       )}
     >

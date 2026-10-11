@@ -16,7 +16,7 @@ const DocumentClient: React.FC<DocumentClientProps> = ({
   currentUserType,
 }) => {
   return (
-    <main className="flex h-screen w-full flex-col items-center overflow-hidden">
+    <main className="flex h-screen w-full flex-col items-center overflow-hidden print:block print:h-auto print:overflow-visible">
       <CollaborativeRoom
         roomId={roomId}
         roomMetadata={roomMetadata}

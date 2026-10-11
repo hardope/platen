@@ -357,16 +357,17 @@ Align the primary editor ribbon with the Google Docs layout hierarchy, eliminati
 
 ## 2.3.C Google Docs Multi-Page Pagination & Continuous Canvas Architecture
 
-Elevate the editor canvas from a single static height container into an authentic Google Docs book-like pagination system with continuous paper canvas, dynamic page calculation, and dashed page boundary indicators.
+Elevate the editor canvas from a single static height container into real pages: discrete paper sheets on a desk background, with the document flowing from one sheet to the next and never running through a page margin.
 
 ### Core Anatomy
 
-1. **Pages Mode (Continuous Paper Canvas with Google Docs Page Dividers):**
-   - Renders a continuous paper sheet (816px x 1056px for Letter, 794px x 1123px for A4) on a desk background with subtle drop shadows and borders.
-   - Dynamically calculates total page count based on active editor content height using a pure read-only, debounced `ResizeObserver`:
-     $$\text{pageCount} = \max\left(1, \left\lceil \frac{\text{contentHeight}}{\text{pageHeight} - (\text{pagePaddingY} \times 2)} \right\rceil\right)$$
-   - At exact standard page intervals (1056px for Letter), renders visual Google Docs-style dashed page dividers (`.page-break-divider`) with right-aligned page number badges (`Page 2`, `Page 3`), giving authors clear spatial orientation without layout thrashing.
-   - Guarantees 60fps typing, zero layout pendulums, zero flickering, and zero AST mutation conflicts in collaborative Liveblocks sessions.
+1. **Pages Mode (Discrete Sheets, Single Editor):**
+   - One Lexical editor (one contenteditable) is kept for the whole document so selection, undo, find, and the Liveblocks Yjs binding work across pages.
+   - `EditorShell.tsx` draws one sheet per page (816px x 1056px for Letter, 794px x 1123px for A4) behind the editor, separated by a 16px desk gap, with the page number in each sheet's bottom margin.
+   - `PaginationPlugin.tsx` measures the top-level blocks after every content change (and when images or fonts finish loading). A block that would cross the bottom margin of its page, or follows a manual page break, gets a top margin that moves it to the start of the next page. A heading at the bottom of a page moves with the block it introduces.
+   - The margins live in a generated stylesheet, never in the document: each collaborator lays out their own view, so nothing pagination-related is synced through Liveblocks.
+   - Page size and margins are shared document settings stored in Liveblocks Storage (`pageSize`, `pageMargins`), editable only by users with write access. Zoom stays a per-viewer preference.
+   - Printing hides the sheets and lets the browser paginate using an `@page` rule generated from the page setup; manual page breaks force a printed page break.
 2. **Pageless Mode (Fluid Continuous Canvas):**
    - 100% fluid edge-to-edge canvas with zero fixed width clamps (`.page-canvas-pageless`) and comfortable responsive horizontal padding.
    - Viewport background dynamically matches paper background (`bg-surface`) with zero card borders or gray desk boxing, matching Google Docs Pageless.
@@ -378,8 +379,16 @@ Elevate the editor canvas from a single static height container into an authenti
 
 ### Checklist for 2.3.C
 
-- [x] Measure content height dynamically with a debounced read-only `ResizeObserver` on the editor input.
-- [x] Build continuous multi-page paper canvas with Google Docs-style dashed page break dividers and page badges in `EditorShell.tsx`.
+- [x] Render discrete page sheets with page numbers behind a single editor in `EditorShell.tsx`.
+- [x] Push blocks that cross a page's bottom margin to the next page with `PaginationPlugin.tsx`, without changing the shared document.
+- [x] Make manual page breaks start a new page.
+- [x] Keep headings on the same page as the block that follows them.
+- [x] Store page size and margins in Liveblocks Storage so every collaborator sees the same page setup.
+- [x] Add a print stylesheet with an `@page` rule generated from the page setup.
+- [ ] Split lists and tables between items and rows instead of moving them whole.
+- [ ] Shrink images and embeds taller than a page to fit.
+- [ ] Split a single paragraph across pages between lines.
+- [ ] Headers and footers (page numbers first, then editable headers).
 - [x] Ensure Pageless mode dynamically expands without clipping or text escaping the white paper.
 - [x] Resolve Chromium `zoom` dimension freezing with conditional zoom application.
 - [x] Verify live typing, Enter key, and Backspace work seamlessly with 100% stability and zero layout flickering.

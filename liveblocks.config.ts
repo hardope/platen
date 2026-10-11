@@ -1,3 +1,5 @@
+import type { MarginPreset, PageSizePreset } from "@/context/DocumentLayoutContext";
+
 // Define Liveblocks types for your application
 // https://liveblocks.io/docs/api-reference/liveblocks-react#Typing-your-data
 declare global {
@@ -8,7 +10,11 @@ declare global {
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.
-    Storage: Record<string, never>;
+    // Page setup is shared by every collaborator; unset in rooms created before it existed.
+    Storage: {
+      pageSize?: PageSizePreset;
+      pageMargins?: MarginPreset;
+    };
 
     // Custom user info set when authenticating with a secret key
     UserMeta: {

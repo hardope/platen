@@ -12,7 +12,7 @@ export interface PageLayoutConfig {
   zoom: ZoomPreset;
   zoomFactor: number; // 0.5, 1.0, 1.5, etc.
   width: number; // in pixels
-  minHeight: number; // in pixels
+  pageHeight: number; // in pixels
   paddingX: number; // in pixels
   paddingY: number; // in pixels
   isPageless: boolean;
@@ -27,6 +27,9 @@ export const PAGE_SIZE_SPECS: Record<
   legal: { label: "Legal (8.5 x 14″)", width: 816, height: 1344, isPageless: false },
   pageless: { label: "Pageless (Fluid)", width: 960, height: 1056, isPageless: true },
 };
+
+// Desk space between two consecutive page sheets
+export const PAGE_GAP = 16;
 
 export const MARGIN_SPECS: Record<
   MarginPreset,
@@ -51,6 +54,8 @@ export const ZOOM_PRESETS: { label: string; value: ZoomPreset }[] = [
 
 interface DocumentLayoutContextValue {
   layout: PageLayoutConfig;
+  pageCount: number;
+  setPageCount: (count: number) => void;
   setPageSize: (size: PageSizePreset) => void;
   setMargins: (margin: MarginPreset) => void;
   setZoom: (zoom: ZoomPreset) => void;
@@ -58,20 +63,30 @@ interface DocumentLayoutContextValue {
 
 const DocumentLayoutContext = createContext<DocumentLayoutContextValue | undefined>(undefined);
 
+const noop = () => {};
+
+/**
+ * Page size and margins belong to the document and are shared with every collaborator,
+ * so they are passed in (without change handlers for read-only users).
+ * Zoom is a per-viewer preference and stays local.
+ */
 export function DocumentLayoutProvider({
   children,
-  initialPageSize = "letter",
-  initialMargins = "normal",
+  pageSize = "letter",
+  margins = "normal",
+  onPageSizeChange = noop,
+  onMarginsChange = noop,
   initialZoom = 100,
 }: {
   children: React.ReactNode;
-  initialPageSize?: PageSizePreset;
-  initialMargins?: MarginPreset;
+  pageSize?: PageSizePreset;
+  margins?: MarginPreset;
+  onPageSizeChange?: (size: PageSizePreset) => void;
+  onMarginsChange?: (margin: MarginPreset) => void;
   initialZoom?: ZoomPreset;
 }): React.JSX.Element {
-  const [pageSize, setPageSize] = useState<PageSizePreset>(initialPageSize);
-  const [margins, setMargins] = useState<MarginPreset>(initialMargins);
   const [zoom, setZoom] = useState<ZoomPreset>(initialZoom);
+  const [pageCount, setPageCount] = useState<number>(1);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window !== "undefined" ? window.innerWidth : 1200,
   );
@@ -110,7 +125,7 @@ export function DocumentLayoutProvider({
       zoom,
       zoomFactor,
       width: sizeSpec.width,
-      minHeight: sizeSpec.height,
+      pageHeight: sizeSpec.height,
       paddingX: sizeSpec.isPageless ? 48 : marginSpec.padX,
       paddingY: sizeSpec.isPageless ? 32 : marginSpec.padY,
       isPageless: sizeSpec.isPageless,
@@ -126,7 +141,7 @@ export function DocumentLayoutProvider({
       );
       document.documentElement.style.setProperty(
         "--page-height",
-        layout.isPageless ? "auto" : `${layout.minHeight}px`,
+        layout.isPageless ? "auto" : `${layout.pageHeight}px`,
       );
       document.documentElement.style.setProperty("--page-padding-x", `${layout.paddingX}px`);
       document.documentElement.style.setProperty("--page-padding-y", `${layout.paddingY}px`);
@@ -135,7 +150,16 @@ export function DocumentLayoutProvider({
   }, [layout]);
 
   return (
-    <DocumentLayoutContext.Provider value={{ layout, setPageSize, setMargins, setZoom }}>
+    <DocumentLayoutContext.Provider
+      value={{
+        layout,
+        pageCount,
+        setPageCount,
+        setPageSize: onPageSizeChange,
+        setMargins: onMarginsChange,
+        setZoom,
+      }}
+    >
       {children}
     </DocumentLayoutContext.Provider>
   );

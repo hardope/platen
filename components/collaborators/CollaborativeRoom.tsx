@@ -131,7 +131,7 @@ const CollaborativeRoom = ({
   return (
     <RoomProvider id={roomId} initialPresence={{ cursor: null }}>
       <ClientSideSuspense fallback={<Loader />}>
-        <div className="flex size-full flex-1 flex-col items-center overflow-hidden">
+        <div className="flex size-full flex-1 flex-col items-center overflow-hidden print:block print:h-auto print:overflow-visible">
           <Header>
             {/* Left Zone: Breadcrumb & Editable Document Title */}
             <div ref={containerRef} className="flex flex-1 items-center gap-2 overflow-hidden">
